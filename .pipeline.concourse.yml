@@ -1,0 +1,45 @@
+jobs:
+- name: elusivebot-kotlin-common
+  plan:
+  - get: elusivebot-kotlin-common-git
+    trigger: true
+  - task: build-jar
+    config:
+      platform: linux
+      caches:
+      - path: $HOME/.m2/repository
+      - path: $HOME/.gradle/caches/
+      - path: $HOME/.gradle/wrapper/
+      inputs:
+      - name: elusivebot-kotlin-common-git
+      image_resource:
+        name: eclipse-temurin-17-jdk
+        type: registry-image
+        source:
+          repository: eclipse-temurin
+          tag: 17-jdk
+      run:
+        path: bash
+        args: 
+        - -c
+        - |
+          set -e
+          mkdir -p $HOME/.gradle
+          touch $HOME/.gradle/gradle.properties
+          chmod 600 $HOME/.gradle/gradle.properties
+          echo "internalMavenUrl=((maven.url))" > $HOME/.gradle/gradle.properties
+          echo "internalMavenUsername=((maven.username))" >> $HOME/.gradle/gradle.properties
+          echo "internalMavenPassword=((maven.password))" >> $HOME/.gradle/gradle.properties
+          set -x
+          cd elusivebot-kotlin-common-git 
+          ./gradlew build
+          ./gradlew publishAllPublicationsToInternal-Maven-PublishRepository
+
+resources:
+- name: elusivebot-kotlin-common-git
+  type: git
+  source:
+    uri: https://github.com/elusivebot/elusivebot-kotlin-common.git
+    icon: github
+    username: ((github.username))
+    password: ((github.password))
