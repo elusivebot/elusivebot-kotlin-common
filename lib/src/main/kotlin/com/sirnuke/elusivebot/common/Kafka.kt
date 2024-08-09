@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
-typealias ConsumerCallback<T> = suspend (String, T) -> Unit
+typealias ConsumerCallback<T> = suspend (Kafka.Producer, String, T) -> Unit
 typealias ConsumerInit = (KStream<String, String>) -> Unit
 
 /**
@@ -19,19 +19,36 @@ typealias ConsumerInit = (KStream<String, String>) -> Unit
  */
 interface Kafka : Closeable {
     /**
-     * Send a message on a Kafka channel.  FYI very thin wrapper for KafkaProducer.send.
+     * Kafka producer interface.
      *
-     * @param topic Kafka topic for the message
-     * @param key Kafka key for message
-     * @param message Serialized JSON string of the message
-     * @param callback Callback when operation has completed
+     * Mostly defined so the producer implementation instance (mostly a thin wrapper over the basic Kafka producer API)
+     * can be constructed before any consumers are registered.  Their callback functions frequently need to send
+     * messages.
      */
-    fun send(
-        topic: String,
-        key: String,
-        message: String,
-        callback: Callback
-    )
+    interface Producer : Closeable {
+        /**
+         * Send a message on a Kafka channel.  FYI very thin wrapper for KafkaProducer.send.
+         *
+         * @param topic Kafka topic for the message
+         * @param key Kafka key for message
+         * @param message Serialized JSON string of the message
+         * @param callback Callback when operation has completed
+         */
+        fun send(
+            topic: String,
+            key: String,
+            message: String,
+            callback: Callback
+        )
+    }
+
+    /**
+     * Kafka consumer interface.
+     *
+     * More or less unused, but a placeholder in case there's a consumer API down the road (such as being able to add
+     * consumers after initialization).
+     */
+    interface Consumer : Closeable
 
     /**
      * Builder for constructing a Kafka interface instance.
@@ -50,6 +67,13 @@ interface Kafka : Closeable {
          * are free to create their own custom topology, if the public API is insufficient.
          */
         val streamsBuilder = StreamsBuilder()
+
+        /**
+         * Internal reference to the producer interface.
+         *
+         * Public due to passing it to consumer callbacks.
+         */
+        val producer: Producer = KafkaImpl.ProducerImpl(applicationId, bootstrap)
 
         /**
          * Register a new consumer topic.
@@ -81,7 +105,7 @@ interface Kafka : Closeable {
 
             consumer.foreach { key, raw ->
                 val message: T = Json.decodeFromString(raw)
-                scope.launch { callback(key, message) }
+                scope.launch { callback(producer, key, message) }
             }
             return this
         }
@@ -91,6 +115,6 @@ interface Kafka : Closeable {
          *
          * @return The newly started Kafka wrapping interface instance
          */
-        fun construct(): Kafka = KafkaImpl(applicationId, bootstrap, streamsBuilder)
+        fun build(): Kafka = KafkaImpl(KafkaImpl.ConsumerImpl(applicationId, bootstrap, streamsBuilder), producer)
     }
 }
