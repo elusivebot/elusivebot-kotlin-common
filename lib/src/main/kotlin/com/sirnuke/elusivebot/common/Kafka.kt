@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 typealias ConsumerCallback<T> = suspend (Kafka.Producer, String, T) -> Unit
-typealias ConsumerInit = (KStream<String, String>) -> Unit
+typealias ConsumerInit = (KStream<String, String>) -> KStream<String, String>
 
 /**
  * Thin wrapper Kafka that provides a coroutine friendly send and receive API.
@@ -84,7 +84,7 @@ interface Kafka : Closeable {
          * @return This builder instance for function chaining
          */
         inline fun <reified T> registerConsumer(topic: String, crossinline callback: ConsumerCallback<T>): Builder =
-            registerConsumer(topic, {}, callback)
+            registerConsumer(topic, { stream -> stream }, callback)
 
         /**
          * Register a new consumer topic with extra configuration of the KStream instance.
@@ -100,8 +100,7 @@ interface Kafka : Closeable {
             init: ConsumerInit,
             crossinline callback: ConsumerCallback<T>
         ): Builder {
-            val consumer: KStream<String, String> = streamsBuilder.stream(topic)
-            init(consumer)
+            val consumer: KStream<String, String> = init(streamsBuilder.stream(topic))
 
             consumer.foreach { key, raw ->
                 val message: T = Json.decodeFromString(raw)
