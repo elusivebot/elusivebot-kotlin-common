@@ -19,6 +19,21 @@ typealias ConsumerInit = (KStream<String, String>) -> KStream<String, String>
  */
 interface Kafka : Closeable {
     /**
+     * Send a message on a Kafka channel.  Pass through to the producer instance.
+     *
+     * @param topic Kafka topic for the message
+     * @param key Kafka key for message
+     * @param message Serialized JSON string of the message
+     * @param callback Callback when operation has completed
+     */
+    fun send(
+        topic: String,
+        key: String,
+        message: String,
+        callback: Callback
+    )
+
+    /**
      * Kafka producer interface.
      *
      * Mostly defined so the producer implementation instance (mostly a thin wrapper over the basic Kafka producer API)

@@ -18,6 +18,13 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 internal class KafkaImpl(private val consumer: Kafka.Consumer, private val producer: Kafka.Producer) : Kafka {
     private val running = AtomicBoolean(true)
+    override fun send(
+        topic: String,
+        key: String,
+        message: String,
+        callback: Callback
+    ) =
+        producer.send(topic, key, message, callback)
 
     override fun close() {
         if (running.getAndSet(false)) {
