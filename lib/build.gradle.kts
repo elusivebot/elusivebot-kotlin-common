@@ -1,7 +1,7 @@
 group = "com.sirnuke.elusivebot"
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.9.10"
+    id("org.jetbrains.kotlin.jvm") version "2.0.10"
     id("com.diffplug.spotless") version "6.25.0"
     `java-library`
     `maven-publish`
@@ -81,10 +81,10 @@ run {
     }
 }
 
-val kafkaApiVersion = "3.6.1"
+val kafkaApiVersion = "3.8.0"
 
 dependencies {
-    api("org.slf4j:slf4j-api:2.0.11")
+    api("org.slf4j:slf4j-api:2.0.16")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 
@@ -108,4 +108,11 @@ java {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+tasks.register("printVersion") {
+    doLast {
+        @Suppress("DEBUG_PRINT")
+        println(project.version)
+    }
 }
