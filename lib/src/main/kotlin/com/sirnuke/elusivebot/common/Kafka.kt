@@ -115,9 +115,11 @@ interface Kafka : Closeable {
             init: ConsumerInit,
             crossinline callback: ConsumerCallback<T>
         ): Builder {
+            log.info("Registering topic {}", topic)
             val consumer: KStream<String, String> = init(streamsBuilder.stream(topic))
 
             consumer.foreach { key, raw ->
+                log.info("Received key {} message {}", key, raw)
                 val message: T = Json.decodeFromString(raw)
                 scope.launch { callback(producer, key, message) }
             }
@@ -130,5 +132,8 @@ interface Kafka : Closeable {
          * @return The newly started Kafka wrapping interface instance
          */
         fun build(): Kafka = KafkaImpl(KafkaImpl.ConsumerImpl(applicationId, bootstrap, streamsBuilder), producer)
+        companion object {
+            val log by logger()
+        }
     }
 }
